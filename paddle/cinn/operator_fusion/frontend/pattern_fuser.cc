@@ -65,21 +65,37 @@ template <>
 StmtPattern<FrontendStage> MergePatternImpl(
     const TrivialPattern<FrontendStage>& first,
     const ReduceTreePattern<FrontendStage>& second) {
-  // TODO(@wuzhanfei)
+  ReduceTreePattern<FrontendStage> result = second;  // copy from given pattern.
+  result.FuseUpstreamTrivialPattern(first);
+  return result;
 }
 
 template <>
 StmtPattern<FrontendStage> MergePatternImpl(
     const TrivialPattern<FrontendStage>& first,
     const ReduceTreePlusTrivialPattern<FrontendStage>& second) {
-  // TODO(@wuzhanfei)
+  const ReduceTreePattern<FrontendStage>& old_reduce_tree_pattern =
+      second.GetTreePattern();
+  const auto& new_reduce_root_contents = UniqueConcatVector(
+      GetOpsInPattern<FrontendStage>(first),
+      GetOpsInPattern<FrontendStage>(old_reduce_tree_pattern.GetRootPattern()));
+  const ReduceTreePattern<FrontendStage>& new_reduce_tree_pattern =
+      ReduceTreePattern<FrontendStage>(
+          second.childs(),
+          ReducePattern<FrontendStage>(new_reduce_root_contents));
+  return ReduceTreePlusTrivialPattern<FrontendStage>(
+      new_reduce_tree_pattern, second.GetSinkTrivialPattern());
 }
 
 template <>
 StmtPattern<FrontendStage> MergePatternImpl(
     const TrivialPattern<FrontendStage>& first,
     const AnchorPattern<FrontendStage>& second) {
-  // TODO(@wuzhanfei)
+  const auto& contents =
+      UniqueConcatVector(GetOpsInPattern<FrontendStage>(first),
+                         GetOpsInPattern<FrontendStage>(second));
+  return AnchorPattern<FrontendStage>(
+      contents, second.anchor(), AnchorState<FrontendStage>({}));
 }
 
 template <>

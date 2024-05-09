@@ -60,6 +60,20 @@ struct ReduceTreePattern {
     return result;
   }
 
+  // TODO(baizhou): maybe should be moved to frontend/pattern.h
+  void FuseUpstreamTrivialPattern(const TrivialPattern<T>& trivial_pattern) {
+    if IsDirectUpstreamOp (trivial_pattern, root_.GetReduceOp()) {
+      const auto& new_root_contents = UniqueConcatVector(
+          GetOpsInPattern<T>(trivial_pattern), GetOpsInPattern<T>(root_));
+
+      root_ = ReducePattern<T>(new_root_contents)
+    }
+
+    for (auto& child : childs_) {
+      child.FuseUpstreamTrivialPattern(trivial_pattern);
+    }
+  }
+
  private:
   std::vector<ReduceTreePattern<T>> childs_;
   ReducePattern<T> root_;
@@ -69,14 +83,20 @@ template <typename T>
 struct ReduceTreePlusTrivialPattern {
   explicit ReduceTreePlusTrivialPattern(const ReduceTreePattern<T>& tree,
                                         const TrivialPattern<T>& sink_trivial)
-      : tree(tree), sink_trivial(sink_trivial) {}
-  ReduceTreePattern<T> tree;
-  TrivialPattern<T> sink_trivial;
+      : tree_(tree), sink_trivial_(sink_trivial) {}
   std::vector<pir::Operation*> ops() const {
-    return UniqueConcatVector(tree.ops(), sink_trivial.ops());
+    return UniqueConcatVector(tree_.ops(), sink_trivial_.ops());
+  }
+  const ReduceTreePattern<T>& GetTreePattern() const { return tree_; }
+  const TrivialPattern<T>& GetSinkTrivialPattern() const {
+    return sink_trivial_;
   }
   static std::string name() { return "ReduceTree+Trivial"; }
   std::vector<size_t> fake_reduce_iter_idx;
+
+ private:
+  ReduceTreePattern<T> tree_;
+  TrivialPattern<T> sink_trivial_;
 };
 
 template <typename T>

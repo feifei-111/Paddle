@@ -134,6 +134,18 @@ static std::vector<std::pair<size_t, size_t>> GetNonBroadCastDims(
   return res;
 }
 
+bool IsDirectUpstreamOp(const pir::Operation* upstream,
+                        const pir::Operation* downstream) {
+  for (const auto& upstream_result : upstream->results()) {
+    for (const auto& downstream_operand : downstream->operands()) {
+      if (upstream_result == downstream_operand.source()) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 static std::string OpsDebugStr(std::vector<pir::Operation*> ops) {
   std::stringstream ss;
   pir::IrPrinter printer(ss);
